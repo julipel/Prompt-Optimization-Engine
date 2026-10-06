@@ -49,6 +49,11 @@ python -m pytest -q -p no:cacheprovider
 
 ## Установка
 
+Зависимости объявлены в [`pyproject.toml`](pyproject.toml) (PEP 621,
+аналог `requirements.txt`, но с закреплёнными версиями `dspy`/`gepa` и
+опциональными dev-зависимостями через extras) — отдельный `requirements.txt`
+не используется.
+
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate           # Windows PowerShell: .\.venv\Scripts\Activate.ps1
@@ -57,6 +62,76 @@ pytest -q
 python -m prompt_optimizer --help
 prompt-opt --version
 ```
+
+## Запуск CLI (offline, воспроизводимо)
+
+Все файлы ниже — UTF-8, из каталога с `pyproject.toml`:
+
+```bash
+mkdir -p demo && cd demo
+printf 'Передавай неизвестные вопросы оператору' > source.txt
+printf 'Не выдумывай цены. Передавай неизвестные вопросы оператору.' > candidate.txt
+cat > train.jsonl <<'JSON'
+{"id":"unknown","input":"Неизвестная цена?","expected":{"action":"escalate","must_not_invent":true}}
+JSON
+cp train.jsonl validation.jsonl
+cat > responses.json <<'JSON'
+{
+  "v001": {"unknown": {"action": "answer"}},
+  "v002": {"unknown": {"action": "escalate"}}
+}
+JSON
+
+ID=(--registry-root demo-registry --prompt-name clinic)
+DS=(--dataset-id demo --dataset-version 1 --client fake --responses responses.json)
+
+prompt-opt bootstrap "${ID[@]}" --prompt-version v001 --prompt-file source.txt
+prompt-opt evaluate "${ID[@]}" --prompt-version v001 "${DS[@]}" --dataset validation.jsonl --report evaluation.json
+# exit=3: baseline fails "unknown" (report всё равно записан)
+prompt-opt optimize "${ID[@]}" --prompt-version v001 "${DS[@]}" \
+  --train train.jsonl --validation validation.jsonl --task-id demo \
+  --optimizer fake --candidate-file candidate.txt --candidate-version v002 --report optimization.json
+# recommendation: approve -> candidate сохранён, но ещё не production
+prompt-opt versions "${ID[@]}"
+prompt-opt approve "${ID[@]}" --prompt-version v002
+prompt-opt promote "${ID[@]}" --prompt-version v002
+prompt-opt versions "${ID[@]}"   # v002 production, v001 archived
+```
+
+## Запуск HTTP-сервера (offline demo)
+
+`create_demo_app` — uvicorn-factory с фиксированными fake-ответами для
+примера ниже; для своей конфигурации используйте `build_offline_app` с
+собственным `OfflineConfiguration`.
+
+```bash
+# bootstrap production prompt перед первым запуском:
+python -c "
+from prompt_optimizer.adapters.filesystem_registry import FilesystemPromptRepository
+from prompt_optimizer.domain import PromptVersion
+FilesystemPromptRepository('http-demo-registry').bootstrap(
+    PromptVersion('clinic', 'v001', 'Передавай неизвестные вопросы оператору.', status='production'))
+"
+
+PROMPT_REGISTRY_ROOT="$(pwd)/http-demo-registry" \
+  python -m uvicorn prompt_optimizer.http_runtime:create_demo_app --factory \
+  --host 127.0.0.1 --port 8000 --workers 1
+```
+
+В отдельном терминале:
+
+```bash
+curl http://127.0.0.1:8000/prompts/clinic/versions
+curl -X POST http://127.0.0.1:8000/evaluations -H 'Content-Type: application/json' -d '{
+  "prompt_name": "clinic", "prompt_version": "v001",
+  "dataset": {"id": "demo", "version": "1", "cases": [
+    {"id": "unknown", "input": "Неизвестная цена?",
+     "expected": {"action": "escalate", "must_not_invent": true}}
+  ]}
+}'
+```
+
+OpenAPI: `GET /openapi.json`, интерактивные schemas: `/docs`.
 
 ## Возможности
 
