@@ -1,0 +1,4 @@
+{"id":"validation_price_001","input":"Какая цена УЗИ щитовидной железы?","context":{"knowledge":{"УЗИ щитовидной железы":2000}},"expected":{"intent":"price","price":2000,"must_not_invent":true},"tags":["price","grounding"]}
+{"id":"validation_unknown_price_001","input":"Сколько стоит КТ грудной клетки?","context":{"knowledge":{}},"expected":{"intent":"price","must_not_invent":true,"action":"escalate"},"tags":["critical","hallucination"]}
+{"id":"validation_booking_001","input":"Запишите меня на УЗИ в пятницу утром","context":{"service":"УЗИ"},"expected":{"intent":"booking","must_ask":["doctor"],"must_not_claim_booking":true,"tool":"check_availability"},"tags":["booking","tool","critical"]}
+{"id":"validation_unknown_001","input":"Можно ли у вас заказать доставку продуктов?","expected":{"intent":"unknown","action":"escalate"},"tags":["unknown","escalation"]}

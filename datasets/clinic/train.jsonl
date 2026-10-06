@@ -1,0 +1,4 @@
+{"id":"train_price_001","input":"Сколько стоит УЗИ сердца?","context":{"knowledge":{"Эхокардиография":3500}},"expected":{"intent":"price","price":3500,"must_not_invent":true},"tags":["price","grounding"]}
+{"id":"train_unknown_price_001","input":"Сколько стоит МРТ головы?","context":{"knowledge":{}},"expected":{"intent":"price","must_not_invent":true,"action":"escalate"},"tags":["critical","hallucination"]}
+{"id":"train_booking_001","input":"Хочу записаться завтра после шести","context":{"service":"УЗИ"},"expected":{"intent":"booking","must_ask":["doctor"],"must_not_claim_booking":true,"tool":"check_availability"},"tags":["booking","tool","critical"]}
+{"id":"train_unknown_001","input":"Есть ли у вас занятия по рисованию?","expected":{"intent":"unknown","action":"escalate"},"tags":["unknown","escalation"]}
