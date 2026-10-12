@@ -76,6 +76,7 @@ uvicorn --factory prompt_optimizer.http_runtime:create_real_app --host 127.0.0.1
 claude mcp add --scope user prompt-optimizer -- \
   ~/Prompt-Optimization-Engine/.venv/bin/prompt-opt-mcp --config ~/.config/prompt-optimizer/mcp.json
 ln -s ~/Prompt-Optimization-Engine/integrations/claude/skills/prompt-optimizer ~/.claude/skills/prompt-optimizer
+ln -s ~/Prompt-Optimization-Engine/.venv/bin/prompt-opt ~/.local/bin/prompt-opt   # CLI из любого проекта
 ```
 
 `--scope user` и skill в `~/.claude/skills/` делают инструменты доступными во
