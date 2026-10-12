@@ -28,8 +28,9 @@ Use `get_optimization_report({"report_id": result["report"]["id"]})` to read the
 complete report 1.0: outputs, metric details, scores, gates, provenance and aware
 timestamps. The summary projects that report; it does not replace it or recompute
 comparisons. The reference also specifies the read-only HTTP GET path. IDs belong
-to the originating HTTP app/process's in-memory store; restarts and different workers
-can lose access. An unavailable report must never trigger optimization automatically.
+to the originating service's result store: the in-memory store (offline demo) loses
+them on restart or across workers; the file store of the real service keeps them.
+See [INTEGRATION.md](INTEGRATION.md) for connecting the tools to Claude via MCP. An unavailable report must never trigger optimization automatically.
 
 Errors have `error.code`, safe `message`, `saved_candidate`,
 `state_requires_verification`, `outcome_unknown`. No automatic retries occur.

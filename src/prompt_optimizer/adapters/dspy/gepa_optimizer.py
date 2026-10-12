@@ -36,6 +36,7 @@ class GEPAConfig:
     seed: int = 0
     api_base: str | None = None
     reflection_api_base: str | None = None
+    output_description: str | None = None  # None keeps the clinic demo output hint.
 
     def __post_init__(self) -> None:
         for name in ("model", "reflection_model"):
@@ -57,6 +58,9 @@ class GEPAConfig:
         if (isinstance(self.temperature, bool) or not isinstance(self.temperature, (int, float))
                 or not isfinite(self.temperature) or not 0 <= self.temperature <= 2):
             raise GEPAConfigurationError("temperature must be finite and in [0, 2]")
+        if self.output_description is not None and (
+                not isinstance(self.output_description, str) or not self.output_description.strip()):
+            raise GEPAConfigurationError("output_description must be a nonempty string")
         for name in ("api_base", "reflection_api_base"):
             value = getattr(self, name)
             if value is not None and (not isinstance(value, str)
@@ -88,6 +92,14 @@ class _StructuredTask(dspy.Signature):
     ))
 
 
+def structured_signature(instructions: str, output_description: str | None = None) -> type[dspy.Signature]:
+    """The one signature both evaluation and GEPA run, so candidates score alike."""
+    signature = _StructuredTask.with_instructions(instructions)
+    if output_description is not None:
+        signature = signature.with_updated_fields("output", desc=output_description)
+    return signature
+
+
 class _ExecutionErrors:
     """Keep errors visible across DSPy's candidate deep copies."""
 
@@ -99,9 +111,10 @@ class _ExecutionErrors:
 
 
 class _Program(dspy.Module):
-    def __init__(self, instructions: str, errors: _ExecutionErrors | None = None) -> None:
+    def __init__(self, instructions: str, errors: _ExecutionErrors | None = None,
+                 output_description: str | None = None) -> None:
         super().__init__()
-        self.respond = dspy.Predict(_StructuredTask.with_instructions(instructions))
+        self.respond = dspy.Predict(structured_signature(instructions, output_description))
         self.execution_errors = errors or _ExecutionErrors()
 
     def forward(self, input: str, context: dict[str, Any]) -> dspy.Prediction:
@@ -186,7 +199,7 @@ class GEPAOptimizer:
                     reflection_minibatch_size=min(3, len(task.train_cases)),
                 )
                 compiled = optimizer.compile(
-                    _Program(task.source_prompt.text, execution_errors),
+                    _Program(task.source_prompt.text, execution_errors, config.output_description),
                     trainset=[to_example(case) for case in task.train_cases],
                     valset=[to_example(case) for case in task.validation_cases],
                 )

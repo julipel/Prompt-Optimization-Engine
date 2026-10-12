@@ -23,7 +23,8 @@ def tool_definitions() -> list[dict[str, Any]]:
          "error_schema": ToolErrorResponse.model_json_schema()},
         {"name": "get_optimization_report", "description":
          "Read the complete report 1.0 by report_id without optimization or LLM calls. "
-         "IDs exist only in the originating HTTP app/process memory. Missing reports must not trigger reruns.",
+         "IDs belong to the originating service's result store (in-memory stores lose them on restart). "
+         "Missing reports must not trigger reruns.",
          "input_schema": ReportRequest.model_json_schema(),
          "output_schema": OptimizationResponse.model_json_schema(),
          "error_schema": ToolErrorResponse.model_json_schema()},
