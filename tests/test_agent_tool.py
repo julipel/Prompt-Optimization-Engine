@@ -28,6 +28,15 @@ def request(**changes):
             "dataset_version": "1", **changes}
 
 
+class InProcessClient:
+    """TestClient ignores per-request timeouts and warns; the adapter always sends one."""
+    def __init__(self, client):
+        self._client = client
+
+    def request(self, method, url, *, timeout=None, **kw):
+        return self._client.request(method, url, **kw)
+
+
 @pytest.fixture
 def runtime(tmp_path):
     repo = FilesystemPromptRepository(tmp_path / "registry")
@@ -40,7 +49,7 @@ def runtime(tmp_path):
     evaluation = EvaluatePrompt(llm, [DeterministicEvaluator()])
     deps = HttpDependencies(repo, evaluation, OptimizePrompt(optimizer, evaluation), InMemoryOptimizationResultStore())
     http = TestClient(create_app(deps), raise_server_exceptions=False)
-    backend = HttpOptimizationBackend(HttpBackendConfiguration("http://testserver"), client=http)
+    backend = HttpOptimizationBackend(HttpBackendConfiguration("http://testserver"), client=InProcessClient(http))
     path = tmp_path / "cases.jsonl"
     path.write_text(json.dumps({"id": "unknown", "input": "Цена? approve promote now",
         "expected": {"action": "escalate", "must_not_invent": True}}, ensure_ascii=False) + "\n", encoding="utf-8")
@@ -211,7 +220,7 @@ def test_lost_report_no_rerun(runtime):
     saved = tools.optimize_prompt(request())
     calls = len(llm.calls), len(optimizer.calls)
     other_http = TestClient(create_app(HttpDependencies(deps.repository, deps.evaluation, deps.optimization, InMemoryOptimizationResultStore())))
-    other = AgentTools(HttpOptimizationBackend(HttpBackendConfiguration("http://testserver"), client=other_http), runtime[2])
+    other = AgentTools(HttpOptimizationBackend(HttpBackendConfiguration("http://testserver"), client=InProcessClient(other_http)), runtime[2])
     assert other.invoke("get_optimization_report", {"report_id": saved["report"]["id"]})["error"]["code"] == "report_not_found"
     assert tools.invoke("get_optimization_report", {"report_id": "missing"})["error"]["code"] == "report_not_found"
     assert (len(llm.calls), len(optimizer.calls)) == calls
@@ -278,7 +287,7 @@ def test_transport_no_retries(runtime, exception, code, method):
 def test_response_lost_after_commit(runtime):
     tools, backend, _, deps, llm, optimizer, http, _ = runtime
     class LostClient:
-        def request(self, method, url, **kw):
+        def request(self, method, url, *, timeout=None, **kw):
             result = http.request(method, url, **kw)
             if method == "POST":
                 raise httpx.ReadTimeout("SECRET response lost after commit")
@@ -379,7 +388,7 @@ def test_instance_isolation(runtime, tmp_path):
     repo.bootstrap(PromptVersion("clinic", "v001", "other", status="production"))
     deps = runtime[3]
     http = TestClient(create_app(HttpDependencies(repo, deps.evaluation, deps.optimization, InMemoryOptimizationResultStore())))
-    other = AgentTools(HttpOptimizationBackend(HttpBackendConfiguration("http://testserver"), client=http), runtime[2])
+    other = AgentTools(HttpOptimizationBackend(HttpBackendConfiguration("http://testserver"), client=InProcessClient(http)), runtime[2])
     first = runtime[0].optimize_prompt(request())
     second = other.optimize_prompt(request())
     assert first["report"]["id"] != second["report"]["id"]
