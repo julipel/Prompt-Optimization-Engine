@@ -9,7 +9,7 @@ import dspy
 
 from prompt_optimizer.domain import PromptVersion
 from prompt_optimizer.adapters.dspy.gepa_optimizer import (GEPAConfigurationError, _credential, _json,
-                                                           _StructuredTask)
+                                                           structured_signature)
 
 
 class LLMGenerationError(RuntimeError):
@@ -22,12 +22,13 @@ class DSPyLLMClient:
     Instructions are applied exactly as GEPA applies candidate text, so a GEPA
     candidate scores the same way here as during optimization. The API key is
     read from ``credential_env`` at call time and never stored. ``lm`` injects a
-    ready DSPy LM (e.g. ``DummyLM`` in tests) instead of building one.
+    ready DSPy LM (e.g. ``DummyLM`` in tests) instead of building one. Pass the
+    same ``output_description`` as ``GEPAConfig`` (None keeps the clinic hint).
     """
 
     def __init__(self, model: str, credential_env: str, *, max_tokens: int = 16000,
                  temperature: float = 1.0, num_retries: int = 0, api_base: str | None = None,
-                 lm: Any | None = None) -> None:
+                 output_description: str | None = None, lm: Any | None = None) -> None:
         if not isinstance(model, str) or not re.fullmatch(r"[^\s/]+/[^\s]+", model):
             raise GEPAConfigurationError("model must use provider/model notation")
         if not isinstance(credential_env, str) or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", credential_env):
@@ -39,7 +40,11 @@ class DSPyLLMClient:
         if (isinstance(temperature, bool) or not isinstance(temperature, (int, float))
                 or not isfinite(temperature) or not 0 <= temperature <= 2):
             raise GEPAConfigurationError("temperature must be finite and in [0, 2]")
+        if output_description is not None and (not isinstance(output_description, str)
+                                               or not output_description.strip()):
+            raise GEPAConfigurationError("output_description must be a nonempty string")
         self.model = model
+        self._output_description = output_description
         self._credential_env = credential_env
         self._settings = dict(max_tokens=max_tokens, temperature=temperature, num_retries=num_retries,
                               api_base=api_base)
@@ -55,7 +60,7 @@ class DSPyLLMClient:
         lm = self._language_model()
         try:
             with dspy.context(lm=lm, adapter=dspy.JSONAdapter()):
-                prediction = dspy.Predict(_StructuredTask.with_instructions(prompt.text))(
+                prediction = dspy.Predict(structured_signature(prompt.text, self._output_description))(
                     input=input, context=_json(context))
             output = prediction.output
         except Exception as exc:

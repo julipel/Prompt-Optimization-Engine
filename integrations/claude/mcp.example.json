@@ -1,0 +1,10 @@
+{
+  "base_url": "http://127.0.0.1:8765",
+  "timeout_seconds": 1800,
+  "datasets": {
+    "clinic-demo@2": {
+      "train": "../../datasets/clinic_demo/train.jsonl",
+      "validation": "../../datasets/clinic_demo/validation.jsonl"
+    }
+  }
+}

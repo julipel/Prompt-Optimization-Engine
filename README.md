@@ -11,6 +11,9 @@ Provider-independent Python-движок для оценки, автоматич
 **Кейс:** [GEPA улучшает промпт консультанта клиники на реальной модели](docs/CASE_STUDY.md) —
 55 кейсов с отложенным test, метрики до/после, бесплатное офлайн-воспроизведение.
 
+**Подключение к агенту:** [MCP-сервер и skill для Claude Code / Claude Desktop](docs/INTEGRATION.md) —
+оптимизатор работает отдельным сервисом, агент только запрашивает оптимизацию.
+
 ## Главный принцип
 
 GEPA (или любой другой optimizer) не имеет права автоматически менять
@@ -20,7 +23,7 @@ production prompt. Результат оптимизации всегда соз
 ## Статус
 
 - Python 3.11+, протестировано на 3.12 и 3.14.
-- Полный offline test suite: **530 passed, 2 skipped** (пропущены
+- Полный offline test suite: **553 passed, 2 skipped** (пропущены
   `gepa_smoke`, требующий реальных credentials, и тест Windows junction
   на не-Windows).
 - Реальный provider boundary (DSPy 3.4.0 / GEPA 0.1.4) проверен с OpenAI
@@ -346,8 +349,8 @@ src/prompt_optimizer/
 ├── domain/          # неизменяемые модели, чистые правила
 ├── application/      # use cases
 ├── ports/             # protocols для внешних зависимостей
-├── adapters/          # DSPy/GEPA, filesystem registry, JSONL, JSON report, HTTP agent backend, fakes
-├── interfaces/        # CLI, FastAPI, agent tool
+├── adapters/          # DSPy/GEPA + real LLM client, filesystem registry, JSONL, JSON/file reports, HTTP agent backend, fakes
+├── interfaces/        # CLI, FastAPI, agent tool, MCP server
 ├── cli.py
 └── http_runtime.py    # composition root для offline HTTP-демо
 
