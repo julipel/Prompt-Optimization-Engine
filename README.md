@@ -8,6 +8,9 @@ Provider-independent Python-движок для оценки, автоматич
 Демо-домен: синтетический AI-консультант клиники (цены, запись, escalation).
 Без данных реальных пациентов.
 
+**Кейс:** [GEPA улучшает промпт консультанта клиники на реальной модели](docs/CASE_STUDY.md) —
+55 кейсов с отложенным test, метрики до/после, бесплатное офлайн-воспроизведение.
+
 ## Главный принцип
 
 GEPA (или любой другой optimizer) не имеет права автоматически менять
@@ -16,11 +19,14 @@ production prompt. Результат оптимизации всегда соз
 
 ## Статус
 
-- Python 3.11+, протестировано на 3.14.
-- Полный offline test suite: **516 passed, 2 skipped** (пропущен только
-  `gepa_smoke`, требующий реальных credentials).
+- Python 3.11+, протестировано на 3.12 и 3.14.
+- Полный offline test suite: **530 passed, 2 skipped** (пропущены
+  `gepa_smoke`, требующий реальных credentials, и тест Windows junction
+  на не-Windows).
 - Реальный provider boundary (DSPy 3.4.0 / GEPA 0.1.4) проверен с OpenAI
   (`gpt-5.6-terra` / `gpt-5.6-sol`), см. [Реальный провайдер (OpenAI)](#реальный-провайдер-openai).
+- Записанный реальный прогон на 55 кейсах клиники: на отложенном test
+  aggregate 0.396 → 0.955, воспроизводится офлайн — [кейс](docs/CASE_STUDY.md).
 
 ```
 python -m pytest -q -p no:cacheprovider
