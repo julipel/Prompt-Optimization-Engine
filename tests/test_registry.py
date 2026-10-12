@@ -393,6 +393,17 @@ def test_windows_junction_cannot_escape_root(repo, tmp_path):
     assert list(outside.iterdir()) == []
 
 
+@pytest.mark.skipif(os.name == "nt", reason="POSIX symlink test")
+def test_posix_nested_symlink_cannot_escape_root(repo, tmp_path):
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    repo.root.mkdir()
+    (repo.root / "prompts").symlink_to(outside, target_is_directory=True)
+    with pytest.raises(RegistryError, match="Symlinks"):
+        repo.create(prompt())
+    assert list(outside.iterdir()) == []
+
+
 def test_corrupt_multiple_production_and_parent_cycle(repo):
     repo.bootstrap(prompt(status="production"))
     repo.create(prompt("v002", parent_version="v001"))
