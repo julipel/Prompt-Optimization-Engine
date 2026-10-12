@@ -1,5 +1,6 @@
 """Explicit offline composition root and registry lifecycle commands."""
 import argparse
+from collections import Counter
 import json
 import sys
 from collections.abc import Sequence
@@ -47,7 +48,57 @@ def _parser() -> argparse.ArgumentParser:
             p.add_argument("--optimizer", choices=["fake"], required=True)
             p.add_argument("--candidate-file", required=True)
             p.add_argument("--candidate-version")
+    p = commands.add_parser("validate-dataset", help="Check JSONL dataset files before optimization")
+    p.add_argument("files", nargs="+", help="e.g. train.jsonl validation.jsonl test.jsonl")
     return parser
+
+
+def _validate_datasets(paths: Sequence[str]) -> int:
+    """Load each file, check expected-field formats and cross-file id/input overlap.
+
+    Prints label counts per expected field so vocabulary typos stand out.
+    """
+    loader, evaluator = JsonlDatasetLoader(), DeterministicEvaluator()
+    seen_ids: dict[str, str] = {}
+    seen_inputs: dict[str, str] = {}
+    labels: dict[str, Counter] = {}
+    problems: list[str] = []
+    total = 0
+    for path in paths:
+        try:
+            dataset = loader.load(path, dataset_id="validate", version="0")
+        except Exception as exc:
+            problems.append(str(exc))
+            continue
+        for case in dataset.cases:
+            if not case.expected:
+                problems.append(f"{path}: case {case.id!r}: expected is empty, nothing would be checked")
+            try:
+                evaluator.evaluate(case, {})
+            except Exception as exc:
+                problems.append(f"{path}: case {case.id!r}: {exc}")
+            for key, other in ((case.id, seen_ids), (case.input, seen_inputs)):
+                if key in other:
+                    kind = "id" if other is seen_ids else "input"
+                    problems.append(f"{path}: case {case.id!r}: {kind} repeats a case in {other[key]}")
+                other.setdefault(key, path)
+            for field, value in case.expected.items():
+                if isinstance(value, (str, bool)):
+                    labels.setdefault(field, Counter())[json.dumps(value, ensure_ascii=False)] += 1
+        total += len(dataset.cases)
+        print(f"{path}: {len(dataset.cases)} cases")
+    if labels:
+        print("expected values:")
+        for field, counts in sorted(labels.items()):
+            print(f"  {field}: " + ", ".join(f"{value}×{count}" for value, count in sorted(counts.items())))
+    sys.stdout.flush()  # Keep the summary before errors when both streams share a pipe.
+    for problem in problems:
+        print(f"ERROR {problem}", file=sys.stderr)
+    if problems:
+        print(f"Invalid: {len(problems)} problem(s)", file=sys.stderr)
+        return 1
+    print(f"OK: {total} cases in {len(paths)} file(s)")
+    return 0
 
 
 def _responses(path: str) -> FakeLLMClient:
@@ -75,6 +126,8 @@ def main(argv: Sequence[str] | None = None, *, report_writer: ReportWriter | Non
     if args.command is None:
         parser.print_help()
         return 0
+    if args.command == "validate-dataset":
+        return _validate_datasets(args.files)
     saved = None
     stage = "storage"
     try:

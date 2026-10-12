@@ -32,6 +32,8 @@ JSONL, one case per line:
   `context.knowledge`), `must_not_claim_booking`, `must_ask`, `tool`.
 - Files: `train.jsonl`, `validation.jsonl` (drives candidate selection) and a separate
   `test.jsonl` for the final check; no shared ids or inputs; 20–40 cases each to start.
+- Check before registering: `prompt-opt validate-dataset train.jsonl validation.jsonl test.jsonl`
+  — fix every ERROR, and scan the printed value counts for label typos.
 - Avoid putting one fixed lookup table in every case: the optimizer may copy it into
   the prompt and the test split will not notice.
 

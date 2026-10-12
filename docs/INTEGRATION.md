@@ -116,7 +116,8 @@ MCP-сервер через WSL. Сервис на `127.0.0.1` внутри WSL 
 ## 6. Работа из другого проекта
 
 1. Подготовьте датасет по правилам из skill: JSONL, точные значения полей,
-   train/validation/test без пересечений. Добавьте его в `mcp.json`.
+   train/validation/test без пересечений. Проверьте его командой
+   `prompt-opt validate-dataset train.jsonl validation.jsonl test.jsonl` и добавьте в `mcp.json`.
 2. Положите исходный промпт в реестр (это делает человек):
    `prompt-opt bootstrap --registry-root $PROMPT_REGISTRY_ROOT --prompt-name tickets --prompt-version v001 --prompt-file prompt.txt`
 3. Попросите Claude: «оптимизируй промпт tickets на датасете support-tickets@1».

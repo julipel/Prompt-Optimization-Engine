@@ -23,7 +23,7 @@ production prompt. Результат оптимизации всегда соз
 ## Статус
 
 - Python 3.11+, протестировано на 3.12 и 3.14.
-- Полный offline test suite: **553 passed, 2 skipped** (пропущены
+- Полный offline test suite: **556 passed, 2 skipped** (пропущены
   `gepa_smoke`, требующий реальных credentials, и тест Windows junction
   на не-Windows).
 - Реальный provider boundary (DSPy 3.4.0 / GEPA 0.1.4) проверен с OpenAI
@@ -204,8 +204,8 @@ before/after/deltas, gates и recommendation. Запись атомарна
 
 ### CLI
 
-Entry point `prompt-opt` / `python -m prompt_optimizer`. Все команды требуют
-`--registry-root` и `--prompt-name`:
+Entry point `prompt-opt` / `python -m prompt_optimizer`. Все команды, кроме
+`validate-dataset`, требуют `--registry-root` и `--prompt-name`:
 
 | Команда | Назначение |
 | --- | --- |
@@ -214,6 +214,7 @@ Entry point `prompt-opt` / `python -m prompt_optimizer`. Все команды �
 | `optimize --prompt-version V --train FILE --validation FILE --dataset-id ID --dataset-version VER --task-id ID --client fake --responses FILE --optimizer fake --candidate-file FILE --report FILE [--candidate-version V]` | Pipeline + SaveCandidate |
 | `versions` | JSON-строки version/status/parent/provenance |
 | `approve` / `reject` / `promote` | Отдельные явные lifecycle-команды |
+| `validate-dataset FILE [FILE ...]` | Проверка JSONL до оптимизации: формат, повторы id/input между файлами, пустой `expected`, частоты значений каждого поля |
 
 Exit codes: `0` успех, `1` ошибка ввода/исполнения/registry/report,
 `2` неверные CLI-аргументы, `3` evaluation с failed cases или optimization
