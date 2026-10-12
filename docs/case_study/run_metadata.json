@@ -1,0 +1,15 @@
+{
+  "model": "openai/gpt-5.6-terra",
+  "reflection_model": "openai/gpt-5.6-sol",
+  "max_tokens": 16000,
+  "max_metric_calls": 150,
+  "seed": 0,
+  "dspy_version": "3.4.0",
+  "gepa_version": "0.1.4",
+  "dataset": "clinic-demo@2",
+  "train_cases": 25,
+  "validation_cases": 15,
+  "test_cases": 15,
+  "started_at": "2026-10-12T10:51:53.568328+00:00",
+  "completed_at": "2026-10-12T11:00:13.162903+00:00"
+}
